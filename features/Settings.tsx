@@ -151,7 +151,7 @@ const Settings: React.FC<SettingsProps> = ({ onSave }) => {
                 placeholder="GOOGLE_API_KEY"
                 className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800"
               />
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">اتركه فارغاً لاستخدام المفتاح الافتراضي للنظام (إذا وجد).</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">يتم حفظ المفتاح محلياً في متصفحك. لن تحتاج لإدخاله مرة أخرى ما لم تقم بمسح بيانات التصفح.</p>
             </div>
             <div className="mt-4">
               <label htmlFor="googleModel" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">النموذج</label>
