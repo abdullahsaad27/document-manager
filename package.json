@@ -1,0 +1,43 @@
+{
+  "name": "document-manager",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "jest",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "cap:sync": "vite build && capacitor sync",
+    "cap:open:ios": "capacitor open ios",
+    "cap:open:android": "capacitor open android",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/ios": "^6.1.0",
+    "@google/genai": "^1.36.0",
+    "@tauri-apps/api": "^1.6.0",
+    "pdf-lib": "^1.17.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.0",
+    "@jest/globals": "^29.7.0",
+    "@tauri-apps/cli": "^1.6.0",
+    "@types/jest": "^29.5.12",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.2.1",
+    "gh-pages": "^6.3.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}
