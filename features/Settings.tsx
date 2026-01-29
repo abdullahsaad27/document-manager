@@ -282,7 +282,7 @@ const Settings: React.FC<SettingsProps> = ({ onSave }) => {
                 onChange={(e) => setSettings(s => ({ ...s, pdfChunkSize: Number(e.target.value) }))}
                 className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 appearance-none"
               >
-                {[1, 2, 3, 4, 5, 10, 15, 20, 25].map(size => (
+                {[1, 2, 3, 4, 5, 10, 15, 20, 25, 50].map(size => (
                   <option key={size} value={size}>{size} صفحات في كل طلب</option>
                 ))}
               </select>
