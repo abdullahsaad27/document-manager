@@ -182,7 +182,7 @@ const ResultView: React.FC<ResultViewProps> = ({
                 onClick={() => onNextStep(service, file)}
                 className="bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 font-semibold py-2 px-4 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors flex items-center gap-2"
               >
-                {React.cloneElement(service.icon as React.ReactElement, { width: 18, height: 18, 'aria-hidden': true })}
+                {React.cloneElement(service.icon as React.ReactElement, { style: { width: 18, height: 18 }, 'aria-hidden': true } as any)}
                 {service.title}
               </button>
             ))}

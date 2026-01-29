@@ -26,5 +26,7 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": ["."],
+  "exclude": ["__tests__", "node_modules", "dist"]
 }

@@ -189,7 +189,7 @@ const CreateQuiz: React.FC = () => {
   const renderQuestion = (q: QuizQuestion, index: number) => {
     const questionTitleId = `question-title-${index}`;
     return (
-        <div id={`question-container-${index}`} ref={el => questionRefs.current[index] = el} data-question-index={index} className="scroll-mt-8">
+        <div id={`question-container-${index}`} ref={(el) => { if (el) questionRefs.current[index] = el; }} data-question-index={index} className="scroll-mt-8">
             <h3 id={questionTitleId} className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-100">
                 {`السؤال ${index + 1}: ${q.question}`}
             </h3>
