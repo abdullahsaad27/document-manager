@@ -70,12 +70,12 @@ export interface PageState {
 }
 
 // New types for settings
-export type AiProvider = 'google' | 'openai' | 'openrouter' | 'mistral';
+export type AiProvider = 'google' | 'openrouter' | 'mistral';
 export type Theme = 'light' | 'dark' | 'system';
 
 export interface Settings {
   provider: AiProvider;
-  apiKey: string; // For OpenAI/OpenRouter
+  openRouterApiKey?: string; // New field for OpenRouter
   mistralApiKey?: string; // New field for Mistral
   googleApiKey: string; // For user-provided Google Key
   model: string;

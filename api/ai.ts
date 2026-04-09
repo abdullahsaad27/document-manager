@@ -1,7 +1,7 @@
 // This is a serverless function (e.g., for Vercel or Netlify).
 // It acts as a secure proxy for AI API calls to protect API keys.
 
-// When deploying, ensure environment variables OPENAI_API_KEY, OPENROUTER_API_KEY, and MISTRAL_API_KEY are set.
+// When deploying, ensure environment variables OPENROUTER_API_KEY and MISTRAL_API_KEY are set.
 
 export const config = {
   runtime: 'edge', // Using edge runtime for performance
@@ -26,10 +26,6 @@ export default async function handler(req: Request) {
 
     // Configuration for supported AI providers
     const providerConfig: { [key: string]: { apiUrl: string; apiKey: string } } = {
-      openai: {
-        apiUrl: 'https://api.openai.com/v1',
-        apiKey: process.env.OPENAI_API_KEY || ''
-      },
       openrouter: {
         apiUrl: 'https://openrouter.ai/api/v1',
         apiKey: process.env.OPENROUTER_API_KEY || ''

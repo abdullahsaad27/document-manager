@@ -34,29 +34,8 @@ describe('aiService', () => {
       expect(result).toBe('ملخص من Gemini');
     });
 
-    it('should call OpenAI API when provider is openai', async () => {
-      mockGetSettings.mockReturnValue({ provider: 'openai', model: 'gpt-4o', apiKey: 'test-key' });
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          choices: [{ message: { content: 'ملخص من OpenAI' } }],
-        }),
-      } as any);
-
-      const result = await summarizeText('نص طويل', 'short');
-      
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.openai.com/v1/chat/completions',
-        expect.any(Object)
-      );
-      const fetchBody = JSON.parse((mockFetch.mock.calls[0] as any[])[1].body);
-      expect(fetchBody.model).toBe('gpt-4o');
-      expect(fetchBody.messages[0].content).toContain('نص طويل');
-      expect(result).toBe('ملخص من OpenAI');
-    });
-
-    it('should call OpenRouter API when provider is openrouter', async () => {
-        mockGetSettings.mockReturnValue({ provider: 'openrouter', model: 'google/gemini-pro', apiKey: 'test-key' });
+    it('should call OpenRouter API via proxy when provider is openrouter', async () => {
+        mockGetSettings.mockReturnValue({ provider: 'openrouter', model: 'google/gemini-pro', openRouterApiKey: 'test-key' });
         mockFetch.mockResolvedValue({
           ok: true,
           json: async () => ({
@@ -67,7 +46,7 @@ describe('aiService', () => {
         const result = await summarizeText('نص طويل', 'short');
         
         expect(mockFetch).toHaveBeenCalledWith(
-          'https://openrouter.ai/api/v1/chat/completions',
+          '/api/ai',
           expect.any(Object)
         );
         const fetchBody = JSON.parse((mockFetch.mock.calls[0] as any[])[1].body);
@@ -76,7 +55,7 @@ describe('aiService', () => {
       });
 
     it('should throw ApiLimitError on 429 status from fetch', async () => {
-        mockGetSettings.mockReturnValue({ provider: 'openai', model: 'gpt-4o', apiKey: 'test-key' });
+        mockGetSettings.mockReturnValue({ provider: 'openrouter', model: 'gpt-4o', openRouterApiKey: 'test-key' });
         mockFetch.mockResolvedValue({
           ok: false,
           status: 429,
@@ -88,7 +67,7 @@ describe('aiService', () => {
     });
 
     it('should throw a generic error on other fetch failures', async () => {
-        mockGetSettings.mockReturnValue({ provider: 'openai', model: 'gpt-4o', apiKey: 'test-key' });
+        mockGetSettings.mockReturnValue({ provider: 'openrouter', model: 'gpt-4o', openRouterApiKey: 'test-key' });
         mockFetch.mockResolvedValue({
           ok: false,
           status: 500,

@@ -14,16 +14,19 @@ describe('settingsService', () => {
     const settings = getSettings();
     expect(settings).toEqual({
       provider: 'google',
-      apiKey: '',
-      model: 'gemini-2.5-flash',
+      googleApiKey: '',
+      openRouterApiKey: '',
+      mistralApiKey: '',
+      model: 'gemini-3-flash-preview',
       theme: 'system',
+      pdfChunkSize: 5
     });
   });
 
   it('should save settings to localStorage', () => {
     const newSettings: Partial<Settings> = {
-      provider: 'openai',
-      apiKey: 'test-key',
+      provider: 'openrouter',
+      openRouterApiKey: 'test-key',
       theme: 'dark',
     };
     saveSettings(newSettings);
@@ -32,54 +35,61 @@ describe('settingsService', () => {
     expect(stored).not.toBeNull();
     const parsed = JSON.parse(stored!);
 
-    expect(parsed.provider).toBe('openai');
+    expect(parsed.provider).toBe('openrouter');
     expect(parsed.theme).toBe('dark');
-    expect(parsed.providers.openai.apiKey).toBe('test-key');
-    // Default model for openai should be retained if not provided
-    expect(parsed.providers.openai.model).toBe('gpt-4o');
+    expect(parsed.providers.openrouter.apiKey).toBe('test-key');
+    // Default model for openrouter should be retained if not provided
+    expect(parsed.providers.openrouter.model).toBe('google/gemini-2.5-flash');
     // Check that other provider settings are untouched
-    expect(parsed.providers.google.model).toBe('gemini-2.5-flash');
+    expect(parsed.providers.google.model).toBe('gemini-3-flash-preview');
   });
 
   it('should retrieve saved settings from localStorage for the active provider', () => {
     const testStoredSettings = {
-        provider: 'openai',
+        provider: 'openrouter',
         theme: 'light',
         providers: {
-            google: { model: 'gemini-2.5-flash' },
-            openai: { apiKey: 'retrieved-key', model: 'openai/gpt-4' },
-            openrouter: { apiKey: '', model: 'google/gemini-2.5-flash' },
-        }
+            google: { model: 'gemini-3-flash-preview', apiKey: '' },
+            openrouter: { apiKey: 'retrieved-key', model: 'anthropic/claude-3-haiku' },
+            mistral: { apiKey: '', model: 'mistral-large-latest' },
+        },
+        pdfChunkSize: 10
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(testStoredSettings));
 
     const settings = getSettings();
     expect(settings).toEqual({
-      provider: 'openai',
-      apiKey: 'retrieved-key',
-      model: 'openai/gpt-4',
+      provider: 'openrouter',
+      openRouterApiKey: 'retrieved-key',
+      googleApiKey: '',
+      mistralApiKey: '',
+      model: 'anthropic/claude-3-haiku',
       theme: 'light',
+      pdfChunkSize: 10
     });
   });
   
   it('should merge saved settings with defaults if a key is missing', () => {
      const partialStoredSettings = {
-      provider: 'openai',
+      provider: 'openrouter',
       // theme is missing
       providers: {
-        openai: { apiKey: 'partial-key' }, // model is missing
-        // google and openrouter settings are missing
+        openrouter: { apiKey: 'partial-key' }, // model is missing
+        // google and mistral settings are missing
       }
     };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(partialStoredSettings));
     
     const settings = getSettings();
-    // getSettings() should return the thin settings for 'openai'
+    // getSettings() should return the thin settings for 'openrouter'
     expect(settings).toEqual({
-      provider: 'openai',
-      apiKey: 'partial-key',
-      model: 'gpt-4o', // from default
+      provider: 'openrouter',
+      openRouterApiKey: 'partial-key',
+      googleApiKey: '',
+      mistralApiKey: '',
+      model: 'google/gemini-2.5-flash', // from default
       theme: 'system', // from default
+      pdfChunkSize: 5 // from default
     });
   });
 });

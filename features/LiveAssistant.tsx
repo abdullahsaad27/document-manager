@@ -78,7 +78,7 @@ const LiveAssistant: React.FC = () => {
 
         // Using a promise to handle the session connection
         const sessionPromise = ai.live.connect({
-            model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+            model: 'gemini-3.1-flash-live-preview',
             callbacks: {
                 onopen: () => {
                     setStatus('متصل. تحدث الآن!');

@@ -38,7 +38,7 @@ const handleApiCall = async (
             } else {
                 result = await geminiService.generateText(prompt as string);
             }
-        } else if (['openai', 'openrouter', 'mistral'].includes(settings.provider)) {
+        } else if (['openrouter', 'mistral'].includes(settings.provider)) {
             console.log(`[AI Service] Calling Server Data Proxy...`);
             const url = '/api/ai'; 
             
@@ -79,7 +79,7 @@ const handleApiCall = async (
                     messages: action === 'chat' ? messages : undefined,
                     fileData: action === 'ocr' ? filePart.inlineData.data : undefined,
                     fileMimeType: action === 'ocr' ? filePart.inlineData.mimeType : undefined,
-                    userApiKey: settings.provider === 'mistral' ? settings.mistralApiKey : undefined,
+                    userApiKey: settings.provider === 'mistral' ? settings.mistralApiKey : settings.provider === 'openrouter' ? settings.openRouterApiKey : undefined,
                     ...(isJson && { response_format: { type: "json_object" } }),
                 }),
             });
@@ -198,7 +198,7 @@ export const summarizeImages = async (imageParts: any[], summaryType: string): P
     try {
         if (settings.provider === 'google') {
             return await geminiService.generateMultiModalTextFromImages(prompt, imageParts);
-        } else if (['openai', 'openrouter', 'mistral'].includes(settings.provider)) {
+        } else if (['openrouter', 'mistral'].includes(settings.provider)) {
             const url = '/api/ai'; 
             
             const content: any[] = [{ type: 'text', text: prompt }];
@@ -221,7 +221,7 @@ export const summarizeImages = async (imageParts: any[], summaryType: string): P
                     provider: settings.provider,
                     model: settings.model,
                     messages,
-                    userApiKey: settings.provider === 'mistral' ? settings.mistralApiKey : undefined,
+                    userApiKey: settings.provider === 'mistral' ? settings.mistralApiKey : settings.provider === 'openrouter' ? settings.openRouterApiKey : undefined,
                 }),
             });
             
@@ -459,7 +459,7 @@ export const extractTextFromImageBatch = async (
     // Use summarizeImages logic (multimodal list)
     if (settings.provider === 'google') {
         return await geminiService.generateMultiModalTextFromImages(prompt, imageParts);
-    } else if (['openai', 'openrouter', 'mistral'].includes(settings.provider)) {
+    } else if (['openrouter', 'mistral'].includes(settings.provider)) {
         // Construct message for OpenAI-compatible providers
         const url = '/api/ai';
         const content: any[] = [{ type: 'text', text: prompt }];
@@ -482,7 +482,7 @@ export const extractTextFromImageBatch = async (
                 provider: settings.provider,
                 model: settings.model,
                 messages,
-                userApiKey: settings.provider === 'mistral' ? settings.mistralApiKey : undefined,
+                userApiKey: settings.provider === 'mistral' ? settings.mistralApiKey : settings.provider === 'openrouter' ? settings.openRouterApiKey : undefined,
             }),
         });
         
@@ -620,9 +620,16 @@ export const analyzePdfLayout = async (imagePart: { inlineData: { data: string; 
     }
 };
 
-export const verifyApiKey = async (provider: 'openai' | 'openrouter' | 'mistral'): Promise<boolean> => {
+export const verifyApiKey = async (provider: 'openrouter' | 'mistral'): Promise<boolean> => {
     try {
         const settings = getSettings();
+        if (provider === 'openrouter') {
+            const res = await fetch('https://openrouter.ai/api/v1/auth/key', {
+                headers: { 'Authorization': `Bearer ${settings.openRouterApiKey}` }
+            });
+            return res.ok;
+        }
+        
         const userKey = provider === 'mistral' ? settings.mistralApiKey : undefined;
         const res = await fetch('/api/ai', {
             method: 'POST',
@@ -640,14 +647,11 @@ export const verifyGoogleApiKey = async (apiKey: string): Promise<boolean> => {
 };
 
 export const fetchOpenRouterModels = async (): Promise<OpenRouterModel[]> => {
-    const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider: 'openrouter', action: 'fetchModels' })
-    });
+    const res = await fetch('https://openrouter.ai/api/v1/models');
     if (!res.ok) {
-        throw new Error("Failed to fetch models from OpenRouter via proxy.");
+        throw new Error("Failed to fetch models from OpenRouter API.");
     }
-    const { data } = await res.json();
-    return data;
+    const json = await res.json();
+    const freeModels = json.data.filter((model: any) => model.pricing.prompt === "0" && model.pricing.completion === "0");
+    return freeModels.map((m: any) => ({ id: m.id, name: m.name }));
 };

@@ -9,8 +9,7 @@ interface StoredSettings {
     theme: Theme;
     providers: {
         google: { model: string; apiKey: string; }; // apiKey here is the user's key
-        openai: { model: string; };
-        openrouter: { model: string; };
+        openrouter: { model: string; apiKey: string; }; // Added apiKey for OpenRouter
         mistral: { model: string; apiKey: string; }; // Added apiKey for Mistral
     };
     templates: Template[];
@@ -22,8 +21,7 @@ const DEFAULTS: StoredSettings = {
     theme: 'system',
     providers: {
         google: { model: 'gemini-3-flash-preview', apiKey: '' },
-        openai: { model: 'gpt-4o' },
-        openrouter: { model: 'google/gemini-2.5-flash' },
+        openrouter: { model: 'google/gemini-2.5-flash', apiKey: '' },
         mistral: { model: 'mistral-large-latest', apiKey: '' },
     },
     templates: [],
@@ -42,7 +40,6 @@ const getStoredSettings = (): StoredSettings => {
                     ...parsed,
                     providers: {
                         google: { ...DEFAULTS.providers.google, ...(parsed.providers?.google || {}) },
-                        openai: { ...DEFAULTS.providers.openai, ...(parsed.providers?.openai || {}) },
                         openrouter: { ...DEFAULTS.providers.openrouter, ...(parsed.providers?.openrouter || {}) },
                         mistral: { ...DEFAULTS.providers.mistral, ...(parsed.providers?.mistral || {}) },
                     },
@@ -53,7 +50,7 @@ const getStoredSettings = (): StoredSettings => {
     } catch (error) {
         console.error("Failed to parse stored settings from localStorage", error);
     }
-    return DEFAULTS;
+    return JSON.parse(JSON.stringify(DEFAULTS));
 }
 
 const saveStoredSettings = (settings: StoredSettings) => {
@@ -73,14 +70,13 @@ export const getSettings = (): Settings => {
 
     let model = '';
     let mistralApiKey = '';
+    let openRouterApiKey = '';
     const googleApiKey = stored.providers.google.apiKey;
 
     switch (activeProvider) {
-        case 'openai':
-            model = stored.providers.openai.model;
-            break;
         case 'openrouter':
             model = stored.providers.openrouter.model;
+            openRouterApiKey = stored.providers.openrouter.apiKey;
             break;
         case 'mistral':
             model = stored.providers.mistral.model;
@@ -95,7 +91,7 @@ export const getSettings = (): Settings => {
     return {
         provider: activeProvider,
         theme: stored.theme,
-        apiKey: '',
+        openRouterApiKey,
         googleApiKey,
         mistralApiKey,
         model,
@@ -145,11 +141,9 @@ export const saveSettings = (settings: Partial<Settings>): Settings => {
     const providerToUpdate = settings.provider || stored.provider;
 
     switch (providerToUpdate) {
-        case 'openai':
-            if (settings.model) stored.providers.openai.model = settings.model;
-            break;
         case 'openrouter':
             if (settings.model) stored.providers.openrouter.model = settings.model;
+            if (settings.openRouterApiKey !== undefined) stored.providers.openrouter.apiKey = settings.openRouterApiKey;
             break;
         case 'mistral':
             if (settings.model) stored.providers.mistral.model = settings.model;

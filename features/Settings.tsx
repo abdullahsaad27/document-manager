@@ -18,11 +18,7 @@ const GOOGLE_MODELS = [
 ];
 
 const MISTRAL_MODELS = [
-  { id: 'mistral-ocr-latest', name: 'Mistral OCR (متخصص للمستندات - الأفضل للـ PDF)' },
-  { id: 'mistral-large-latest', name: 'Mistral Large (الأذكى للمحادثة)' },
-  { id: 'mistral-medium-latest', name: 'Mistral Medium' },
-  { id: 'mistral-small-latest', name: 'Mistral Small (السرعة)' },
-  { id: 'pixtral-12b-latest', name: 'Pixtral 12B (للرؤية والتحليل)' }
+  { id: 'mistral-ocr-latest', name: 'Mistral OCR (الأحدث - متخصص لاستخراج النصوص من المستندات)' }
 ];
 
 const Settings: React.FC<SettingsProps> = ({ onSave }) => {
@@ -56,7 +52,7 @@ const Settings: React.FC<SettingsProps> = ({ onSave }) => {
     let defaultModel = '';
     if (newProvider === 'mistral') defaultModel = 'mistral-ocr-latest';
     if (newProvider === 'google') defaultModel = 'gemini-3-flash';
-    if (newProvider === 'openai') defaultModel = 'gpt-4o';
+    if (newProvider === 'openrouter') defaultModel = openRouterModels.length > 0 ? openRouterModels[0].id : '';
 
     setSettings(s => ({ ...s, provider: newProvider, model: defaultModel }));
     setOpenRouterModels([]);
@@ -189,33 +185,23 @@ const Settings: React.FC<SettingsProps> = ({ onSave }) => {
             </div>
           </div>
         );
-      case 'openai':
-        return (
-          <div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-              تم تكوين OpenAI API بشكل آمن على الخادم. حدد النموذج الذي ترغب في استخدامه.
-            </p>
-            <div className="mt-4">
-              <label htmlFor="openaiModel" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">النموذج</label>
-              <input
-                type="text"
-                id="openaiModel"
-                value={settings.model}
-                onChange={handleModelChange}
-                placeholder="e.g., gpt-4o"
-                className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800"
-              />
-            </div>
-          </div>
-        );
       case 'openrouter':
         return (
           <div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-              تم تكوين OpenRouter API بشكل آمن على الخادم. اختر من قائمة النماذج المتاحة.
-            </p>
+            <div className="mb-4">
+              <label htmlFor="openRouterApiKey" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">مفتاح API الخاص بك لـ OpenRouter</label>
+              <input
+                type="password"
+                id="openRouterApiKey"
+                value={settings.openRouterApiKey || ''}
+                onChange={(e) => setSettings(s => ({ ...s, openRouterApiKey: e.target.value }))}
+                placeholder="sk-or-v1-..."
+                className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800"
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">يتم حفظ المفتاح محلياً في متصفحك. لن يتم تخزينه على الخادم أو GitHub.</p>
+            </div>
             <div className="mt-4">
-              <label htmlFor="openrouterModel" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">النموذج</label>
+              <label htmlFor="openrouterModel" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">النموذج (النماذج المجانية فقط)</label>
               {(isLoadingModels && openRouterModels.length === 0) ? <Spinner /> :
                 (openRouterModels.length > 0 ? (
                   <>
@@ -231,7 +217,7 @@ const Settings: React.FC<SettingsProps> = ({ onSave }) => {
                     </select>
                   </>
                 ) : (
-                  <p className="text-sm text-amber-600 dark:text-amber-400">لا توجد نماذج متاحة. يرجى التحقق من تكوين الخادم.</p>
+                  <p className="text-sm text-amber-600 dark:text-amber-400">لا توجد نماذج متاحة. يرجى التحقق من اتصالك بالإنترنت.</p>
                 ))}
             </div>
           </div>
@@ -262,8 +248,7 @@ const Settings: React.FC<SettingsProps> = ({ onSave }) => {
             <select id="ai-provider" value={settings.provider} onChange={handleProviderChange} className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800">
               <option value="google">Google (الافتراضي)</option>
               <option value="mistral">Mistral AI (مستضاف)</option>
-              <option value="openai">OpenAI (مستضاف)</option>
-              <option value="openrouter">OpenRouter (مستضاف)</option>
+              <option value="openrouter">OpenRouter (مفاتيح محلية)</option>
             </select>
           </div>
           <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border dark:border-slate-700 rounded-lg">
