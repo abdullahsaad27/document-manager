@@ -246,9 +246,9 @@ const Settings: React.FC<SettingsProps> = ({ onSave }) => {
           <div className="mb-4">
             <label htmlFor="ai-provider" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">مزود الخدمة</label>
             <select id="ai-provider" value={settings.provider} onChange={handleProviderChange} className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800">
-              <option value="google">Google (الافتراضي)</option>
-              <option value="mistral">Mistral AI (مستضاف)</option>
-              <option value="openrouter">OpenRouter (مفاتيح محلية)</option>
+              <option value="google">Google Gemini</option>
+              <option value="mistral">Mistral</option>
+              <option value="openrouter">OpenRouter</option>
             </select>
           </div>
           <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border dark:border-slate-700 rounded-lg">

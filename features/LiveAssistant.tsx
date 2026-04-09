@@ -180,6 +180,14 @@ const LiveAssistant: React.FC = () => {
       setStatus('تم قطع الاتصال');
   };
 
+  const startOver = () => {
+      stopSession();
+      setFile(null);
+      setFileContext('');
+      setStatus('جاهز');
+      setError('');
+  };
+
   // Helper functions
   function createBlob(data: Float32Array): Blob {
     const l = data.length;
@@ -266,7 +274,7 @@ const LiveAssistant: React.FC = () => {
         )}
 
         {file && (
-            <div className="flex justify-center gap-4">
+            <div className="flex flex-col items-center gap-4 mt-6">
                  {!isSessionActive ? (
                      <button
                         onClick={startSession}
@@ -288,6 +296,13 @@ const LiveAssistant: React.FC = () => {
                         إنهاء المحادثة
                      </button>
                  )}
+                 <button
+                    onClick={startOver}
+                    disabled={isLoading}
+                    className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 underline mt-2 text-sm"
+                 >
+                    البدء من جديد ومسح المستند الحالي
+                 </button>
             </div>
         )}
         
