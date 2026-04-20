@@ -13,7 +13,7 @@ const GOOGLE_MODELS = [
   { id: 'gemini-3-flash', name: 'Gemini 3.0 Flash (الأحدث - سرعة فائقة)' },
   { id: 'gemini-3-pro', name: 'Gemini 3.0 Pro (الأقوى - دقة متناهية)' },
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (مستقر وسريع)' },
-  { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite (اقتصادي)' },
+  { id: 'gemini-3.1-flash-lite-preview', name: 'Gemini 3.1 Flash Lite (اقتصادي)' },
   { id: 'gemma-4-31b-it', name: 'Gemma 4 (31B IT - مفتوح المصدر)' }
 ];
 
