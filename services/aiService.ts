@@ -12,113 +12,125 @@ export class ApiLimitError extends Error {
   }
 }
 
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
 const handleApiCall = async (
     prompt: string | any[], 
     model: string, 
     isJson: boolean = false, 
     schema?: any,
-    filePart?: any
+    filePart?: any,
+    retries = 3
 ) => {
     const settings = getSettings();
-    const startTime = Date.now();
     const actionType = filePart ? 'Multimodal/OCR' : 'Text Generation';
     const logId = `REQ-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
-    logger.info(`[${logId}] بدء طلب الذكاء الاصطناعي`, `Provider: ${settings.provider}, Model: ${model}, Type: ${actionType}`);
-    console.log(`[AI Service] Starting handleApiCall. Provider: ${settings.provider}, Model: ${settings.model}, Action: ${filePart ? 'Multimodal/OCR' : 'Text'}`);
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        const startTime = Date.now();
+        logger.info(`[${logId}] بدء طلب الذكاء الاصطناعي (المحاولة ${attempt}/${retries})`, `Provider: ${settings.provider}, Model: ${model}, Type: ${actionType}`);
+        console.log(`[AI Service] Starting handleApiCall (Attempt ${attempt}/${retries}). Provider: ${settings.provider}, Model: ${settings.model}, Action: ${filePart ? 'Multimodal/OCR' : 'Text'}`);
 
-    try {
-        let result;
-        if (settings.provider === 'google') {
-            console.log(`[AI Service] Calling Gemini Service...`);
-            if (isJson) {
-                result = await geminiService.generateJson(prompt as string, schema);
-            } else if (filePart) {
-                result = await geminiService.generateMultiModalText(prompt as string, filePart);
-            } else {
-                result = await geminiService.generateText(prompt as string);
-            }
-        } else if (['openrouter', 'mistral'].includes(settings.provider)) {
-            console.log(`[AI Service] Calling Server Data Proxy...`);
-            const url = '/api/ai'; 
-            
-            const messages: any[] = [];
-            let action = 'chat';
-
-            if (settings.provider === 'mistral' && model === 'mistral-ocr-latest' && filePart) {
-                action = 'ocr';
-            }
-
-            if (action === 'chat') {
-                if (filePart) {
-                    if (filePart.inlineData.mimeType.startsWith('image/')) {
-                        messages.push({
-                            role: 'user',
-                            content: [
-                                { type: 'text', text: prompt },
-                                { type: 'image_url', image_url: { url: `data:${filePart.inlineData.mimeType};base64,${filePart.inlineData.data}` } }
-                            ]
-                        });
-                    } else {
-                        throw new Error(`Provider ${settings.provider} does not support direct file analysis for mime type ${filePart.inlineData.mimeType}.`);
-                    }
+        try {
+            let result;
+            if (settings.provider === 'google') {
+                console.log(`[AI Service] Calling Gemini Service...`);
+                if (isJson) {
+                    result = await geminiService.generateJson(prompt as string, schema);
+                } else if (filePart) {
+                    result = await geminiService.generateMultiModalText(prompt as string, filePart);
                 } else {
-                    messages.push({ role: 'user', content: prompt });
+                    result = await geminiService.generateText(prompt as string);
                 }
-            }
+            } else if (['openrouter', 'mistral'].includes(settings.provider)) {
+                console.log(`[AI Service] Calling Server Data Proxy...`);
+                const url = '/api/ai'; 
+                
+                const messages: any[] = [];
+                let action = 'chat';
 
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    provider: settings.provider, 
-                    model: settings.model,
-                    action,
-                    messages: action === 'chat' ? messages : undefined,
-                    fileData: action === 'ocr' ? filePart.inlineData.data : undefined,
-                    fileMimeType: action === 'ocr' ? filePart.inlineData.mimeType : undefined,
-                    userApiKey: settings.provider === 'mistral' ? settings.mistralApiKey : settings.provider === 'openrouter' ? settings.openRouterApiKey : undefined,
-                    ...(isJson && { response_format: { type: "json_object" } }),
-                }),
-            });
+                if (settings.provider === 'mistral' && model === 'mistral-ocr-latest' && filePart) {
+                    action = 'ocr';
+                }
 
-            const resBody = await res.json();
-            if (!res.ok) {
-                const errorMessage = resBody?.error?.message || resBody?.message || `API Error: ${res.status}`;
-                console.error(`[AI Service] Server Proxy Error: ${errorMessage}`);
-                if (res.status === 429 || res.status === 401) throw new ApiLimitError(errorMessage);
-                throw new Error(errorMessage);
-            }
+                if (action === 'chat') {
+                    if (filePart) {
+                        if (filePart.inlineData.mimeType.startsWith('image/')) {
+                            messages.push({
+                                role: 'user',
+                                content: [
+                                    { type: 'text', text: prompt },
+                                    { type: 'image_url', image_url: { url: `data:${filePart.inlineData.mimeType};base64,${filePart.inlineData.data}` } }
+                                ]
+                            });
+                        } else {
+                            throw new Error(`Provider ${settings.provider} does not support direct file analysis for mime type ${filePart.inlineData.mimeType}.`);
+                        }
+                    } else {
+                        messages.push({ role: 'user', content: prompt });
+                    }
+                }
 
-            if (action === 'ocr') {
-                if (!resBody.pages) throw new Error("استجابة غير صالحة من نموذج OCR.");
-                result = resBody.pages.map((p: any) => p.markdown).join('\n\n');
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        provider: settings.provider, 
+                        model: settings.model,
+                        action,
+                        messages: action === 'chat' ? messages : undefined,
+                        fileData: action === 'ocr' ? filePart.inlineData.data : undefined,
+                        fileMimeType: action === 'ocr' ? filePart.inlineData.mimeType : undefined,
+                        userApiKey: settings.provider === 'mistral' ? settings.mistralApiKey : settings.provider === 'openrouter' ? settings.openRouterApiKey : undefined,
+                        ...(isJson && { response_format: { type: "json_object" } }),
+                    }),
+                });
+
+                const resBody = await res.json();
+                if (!res.ok) {
+                    const errorMessage = resBody?.error?.message || resBody?.message || `API Error: ${res.status}`;
+                    console.error(`[AI Service] Server Proxy Error: ${errorMessage}`);
+                    if (res.status === 429 || res.status === 401) throw new ApiLimitError(errorMessage);
+                    throw new Error(errorMessage);
+                }
+
+                if (action === 'ocr') {
+                    if (!resBody.pages) throw new Error("استجابة غير صالحة من نموذج OCR.");
+                    result = resBody.pages.map((p: any) => p.markdown).join('\n\n');
+                } else {
+                    result = resBody.choices[0].message.content;
+                }
             } else {
-                result = resBody.choices[0].message.content;
+                throw new Error("Unsupported AI provider.");
             }
-        } else {
-            throw new Error("Unsupported AI provider.");
-        }
 
-        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-        const resultSize = result?.length || 0;
-        logger.success(`[${logId}] اكتمل الطلب بنجاح`, `Duration: ${duration}s, Output Size: ${resultSize} chars`);
-        console.log(`[AI Service] handleApiCall success. Result length: ${result?.length}`);
-        return result;
+            const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+            const resultSize = result?.length || 0;
+            logger.success(`[${logId}] اكتمل الطلب بنجاح`, `Duration: ${duration}s, Output Size: ${resultSize} chars`);
+            console.log(`[AI Service] handleApiCall success. Result length: ${result?.length}`);
+            return result;
 
-    } catch (err) {
-        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        
-        logger.error(`[${logId}] فشل الطلب`, `Duration: ${duration}s, Error: ${errorMessage}`);
-        
-        if (err instanceof ApiLimitError) {
-            throw err;
+        } catch (err) {
+            const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+            
+            logger.error(`[${logId}] فشل الطلب (المحاولة ${attempt})`, `Duration: ${duration}s, Error: ${errorMessage}`);
+            
+            if (err instanceof ApiLimitError || attempt === retries) {
+                if (attempt === retries) {
+                    console.error("AI Service Error:", err);
+                    throw new Error(`خطأ في التواصل مع الذكاء الاصطناعي: ${errorMessage}`);
+                }
+                throw err;
+            }
+            
+            console.error(`AI Service Error (Attempt ${attempt}):`, err);
+            const waitTime = Math.pow(2, attempt) * 1000;
+            logger.info(`[${logId}] إعادة المحاولة بعد ${waitTime/1000} ثوانٍ...`);
+            await delay(waitTime);
         }
-        console.error("AI Service Error:", err);
-        throw new Error(`خطأ في التواصل مع الذكاء الاصطناعي: ${errorMessage}`);
     }
 };
 

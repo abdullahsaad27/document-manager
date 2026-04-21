@@ -40,6 +40,8 @@ interface FileItem {
     text?: string;
     errorMsg?: string;
     progress?: string;
+    startPage?: number;
+    endPage?: number;
 }
 
 const ExtractTextPdf: React.FC<{ onSelectService: (service: Service) => void; }> = ({ onSelectService }) => {
@@ -74,6 +76,8 @@ const ExtractTextPdf: React.FC<{ onSelectService: (service: Service) => void; }>
                     id: Math.random().toString(36).substring(2, 9),
                     file: f,
                     numPages: pdfDoc.numPages,
+                    startPage: 1,
+                    endPage: pdfDoc.numPages,
                     status: 'pending'
                 });
             } catch (e) {
@@ -89,18 +93,28 @@ const ExtractTextPdf: React.FC<{ onSelectService: (service: Service) => void; }>
         setFiles(prev => prev.filter(f => f.id !== id));
     };
 
-    const processFileAsPdfChunks = async (fileToProcess: File, totalPdfPages: number, fileId: string): Promise<string> => {
+    const updateFilePageRange = (id: string, startPage: number, endPage: number) => {
+        setFiles(prev => prev.map(f => f.id === id ? { ...f, startPage, endPage } : f));
+    };
+
+    const retryFile = (id: string) => {
+        setFiles(prev => prev.map(f => f.id === id ? { ...f, status: 'pending', errorMsg: undefined, progress: undefined } : f));
+    };
+
+    const processFileAsPdfChunks = async (fileItem: FileItem): Promise<string> => {
+        const { file: fileToProcess, startPage = 1, endPage = fileItem.numPages, id: fileId } = fileItem;
         const arrayBuffer = await fileToProcess.arrayBuffer();
         const originalPdf = await PDFDocument.load(arrayBuffer);
         
+        const totalPagesToProcess = endPage - startPage + 1;
         const batchSize = getSettings().pdfChunkSize || 5;
-        const totalBatches = Math.ceil(totalPdfPages / batchSize);
+        const totalBatches = Math.ceil(totalPagesToProcess / batchSize);
         
         let fullText = '';
 
         for (let batchIdx = 0; batchIdx < totalBatches; batchIdx++) {
-            const batchStartPage = 1 + (batchIdx * batchSize);
-            const batchEndPage = Math.min(batchStartPage + batchSize - 1, totalPdfPages);
+            const batchStartPage = startPage + (batchIdx * batchSize);
+            const batchEndPage = Math.min(batchStartPage + batchSize - 1, endPage);
             const currentBatchNum = batchIdx + 1;
 
             setFiles(prev => prev.map(f => f.id === fileId ? { 
@@ -148,7 +162,7 @@ const ExtractTextPdf: React.FC<{ onSelectService: (service: Service) => void; }>
             setFiles(prev => prev.map((f, idx) => idx === i ? { ...f, status: 'processing', progress: 'جاري البدء...' } : f));
             
             try {
-                const text = await processFileAsPdfChunks(currentFile.file, currentFile.numPages, currentFile.id);
+                const text = await processFileAsPdfChunks(currentFile);
                 setFiles(prev => prev.map((f, idx) => idx === i ? { ...f, status: 'done', text, progress: 'اكتمل' } : f));
                 logger.success(`اكتملت معالجة ملف: ${currentFile.file.name}`);
             } catch (err: any) {
@@ -265,7 +279,7 @@ const ExtractTextPdf: React.FC<{ onSelectService: (service: Service) => void; }>
                         <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                             {files.map((fileItem, index) => (
                                 <div key={fileItem.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded shadow-sm">
-                                    <div className="flex flex-col overflow-hidden">
+                                    <div className="flex flex-col overflow-hidden w-full pr-4">
                                         <span className="font-medium text-slate-700 dark:text-slate-200 truncate" title={fileItem.file.name}>
                                             {index + 1}. {fileItem.file.name}
                                         </span>
@@ -277,16 +291,53 @@ const ExtractTextPdf: React.FC<{ onSelectService: (service: Service) => void; }>
                                             {fileItem.status === 'done' && <span className="text-green-600">✓ مكتمل</span>}
                                             {fileItem.status === 'error' && <span className="text-red-600" title={fileItem.errorMsg}>✗ خطأ</span>}
                                         </div>
+                                        {files.length === 1 && fileItem.status !== 'processing' && fileItem.status !== 'done' && (
+                                            <div className="flex items-center gap-3 mt-3 text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-slate-600 dark:text-slate-400">من صفحة:</label>
+                                                    <input 
+                                                        type="number" 
+                                                        min={1} 
+                                                        max={fileItem.endPage || fileItem.numPages}
+                                                        value={fileItem.startPage || 1}
+                                                        onChange={e => updateFilePageRange(fileItem.id, parseInt(e.target.value) || 1, fileItem.endPage || fileItem.numPages)}
+                                                        className="w-20 p-1 border rounded dark:bg-slate-700 dark:border-slate-600 text-center"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-slate-600 dark:text-slate-400">إلى صفحة:</label>
+                                                    <input 
+                                                        type="number" 
+                                                        min={fileItem.startPage || 1} 
+                                                        max={fileItem.numPages}
+                                                        value={fileItem.endPage || fileItem.numPages}
+                                                        onChange={e => updateFilePageRange(fileItem.id, fileItem.startPage || 1, parseInt(e.target.value) || fileItem.numPages)}
+                                                        className="w-20 p-1 border rounded dark:bg-slate-700 dark:border-slate-600 text-center"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                    {fileItem.status !== 'processing' && (
-                                        <button
-                                            onClick={() => removeFile(fileItem.id)}
-                                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors"
-                                            title="إزالة الملف"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                                        </button>
-                                    )}
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        {fileItem.status === 'error' && (
+                                            <button
+                                                onClick={() => retryFile(fileItem.id)}
+                                                className="px-3 py-1.5 text-sm font-medium bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:hover:bg-orange-900/50 rounded-lg transition-colors"
+                                                title="إعادة المحاولة"
+                                            >
+                                                إعادة المحاولة
+                                            </button>
+                                        )}
+                                        {fileItem.status !== 'processing' && (
+                                            <button
+                                                onClick={() => removeFile(fileItem.id)}
+                                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors"
+                                                title="إزالة الملف"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
